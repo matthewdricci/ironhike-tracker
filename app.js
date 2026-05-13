@@ -10,6 +10,11 @@ const REFRESH_MS    = 60_000;
 const REST_MIN      = 45; // minutes between summits before status flips to "Resting"
 const DUP_SEC       = 45; // consecutive timestamps closer than this look like accidental double-taps
 
+// OneSignal push notifications.
+// Paste your OneSignal App ID here after creating the app at onesignal.com.
+// Until set, the subscribe button is hidden. See vault notes: "OneSignal setup.md".
+const ONESIGNAL_APP_ID = "REPLACE_WITH_ONESIGNAL_APP_ID";
+
 // ---------- sim / time-travel ----------
 const params = new URLSearchParams(location.search);
 const SIM_NAME = params.get("sim");
@@ -314,6 +319,51 @@ function installSimBanner() {
   document.body.prepend(b);
 }
 installSimBanner();
+
+// ---------- OneSignal subscribe ----------
+
+function installPushSubscribe() {
+  if (!ONESIGNAL_APP_ID || ONESIGNAL_APP_ID.startsWith("REPLACE_WITH")) return;
+  if (SIM_NAME || SIM_NOW) return; // skip in sim mode
+  // Load SDK
+  const s = document.createElement("script");
+  s.src = "https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js";
+  s.defer = true;
+  document.head.appendChild(s);
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  window.OneSignalDeferred.push(async function(OneSignal) {
+    await OneSignal.init({
+      appId: ONESIGNAL_APP_ID,
+      allowLocalhostAsSecureOrigin: true,
+      notifyButton: { enable: false },
+    });
+    renderPushButton(OneSignal);
+    OneSignal.User.PushSubscription.addEventListener("change", () => renderPushButton(OneSignal));
+  });
+}
+
+async function renderPushButton(OneSignal) {
+  const btn = document.getElementById("push-btn");
+  if (!btn) return;
+  const sub = OneSignal.User.PushSubscription;
+  if (sub.optedIn) {
+    btn.textContent = "🔔 Subscribed — you'll get a push each lap";
+    btn.classList.add("subscribed");
+  } else {
+    btn.textContent = "🔔 Get notified when Matt summits";
+    btn.classList.remove("subscribed");
+  }
+  btn.hidden = false;
+  btn.onclick = async () => {
+    if (sub.optedIn) {
+      await OneSignal.User.PushSubscription.optOut();
+    } else {
+      await OneSignal.Notifications.requestPermission();
+      await OneSignal.User.PushSubscription.optIn();
+    }
+  };
+}
+installPushSubscribe();
 
 // ---------- main loop ----------
 
