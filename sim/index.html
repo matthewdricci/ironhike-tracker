@@ -46,8 +46,9 @@
       "resting":       { what: "Last lap 2h 45m ago. Status flips to RESTING." },
       "finished":      { what: "All 49 laps done with ~1.4h to spare. Victory state." },
       "cutoff-passed": { what: "Cutoff already 60 min ago, 46/49 done. DNF." },
+      "duplicate":     { what: "Accidental double-tap inside the log. Tests the duplicate warning." },
     };
-    const ORDER = ["ontrack", "ahead", "behind", "resting", "finished", "cutoff-passed"];
+    const ORDER = ["ontrack", "ahead", "behind", "resting", "finished", "cutoff-passed", "duplicate"];
 
     fetch("./manifest.json?cb=" + Date.now())
       .then(r => r.json())

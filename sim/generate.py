@@ -131,6 +131,29 @@ def gen():
     cutoff = START + timedelta(hours=72)
     SCENARIOS["cutoff-passed"]["sim_now_iso"] = (cutoff + timedelta(minutes=60)).isoformat()
 
+    # duplicate: same shape as ontrack but with an accidental double-tap inside.
+    # Tests that the dashboard's duplicate-warning surfaces.
+    write_config("duplicate")
+    rows = [("timestamp_iso", "note")]
+    t = START
+    for gap in [70, 75, 78, 80, 82, 85, 88, 88, 365]:  # 9 laps incl. 5h sleep
+        t = t + timedelta(minutes=gap)
+        rows.append((t.isoformat(), ""))
+    # double-tap: lap 10 happens 12 seconds after lap 9
+    t = t + timedelta(seconds=12)
+    rows.append((t.isoformat(), ""))
+    # then continue normally
+    for gap in [80, 82, 85, 88, 90, 92, 95]:
+        t = t + timedelta(minutes=gap)
+        rows.append((t.isoformat(), ""))
+    write_csv(HERE / "duplicate-laps.csv", rows)
+    sim_now = t + timedelta(minutes=25)
+    SCENARIOS["duplicate"] = {
+        "laps_done": len(rows) - 1,
+        "last_lap_iso": t.isoformat(),
+        "sim_now_iso": sim_now.isoformat(),
+    }
+
     # Write the manifest the dashboard reads to know each scenario's simNow.
     import json
     (HERE / "manifest.json").write_text(json.dumps(SCENARIOS, indent=2) + "\n")

@@ -8,6 +8,7 @@ const PROD_CONFIG_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRT
 
 const REFRESH_MS    = 60_000;
 const REST_MIN      = 45; // minutes between summits before status flips to "Resting"
+const DUP_SEC       = 45; // consecutive timestamps closer than this look like accidental double-taps
 
 // ---------- sim / time-travel ----------
 const params = new URLSearchParams(location.search);
@@ -195,10 +196,28 @@ function render(cfg, laps) {
     document.getElementById("status").textContent = elapsedMs < 0 ? "pre-event" : "waiting for lap 1";
   }
 
+  renderDupes(laps);
   renderChart(start, cutoff, total, laps, now);
 
   document.getElementById("updated").textContent =
     "updated " + now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit" });
+}
+
+function renderDupes(laps) {
+  const wrap = document.getElementById("dupes");
+  if (!wrap) return;
+  const pairs = [];
+  for (let i = 1; i < laps.length; i++) {
+    const gap = (laps[i].t - laps[i-1].t) / 1000;
+    if (gap < DUP_SEC) pairs.push({ a: i, b: i + 1, gap });
+  }
+  if (pairs.length === 0) { wrap.hidden = true; wrap.innerHTML = ""; return; }
+  wrap.hidden = false;
+  wrap.innerHTML = `
+    <div class="k">POSSIBLE DUPLICATE${pairs.length > 1 ? "S" : ""}</div>
+    <div class="v">${pairs.map(p => `row ${p.a} &amp; ${p.b} <span class="thin">(${p.gap.toFixed(0)}s apart)</span>`).join("<br>")}</div>
+    <div class="note">If accidental, delete the extra row in the Sheets iOS app.</div>
+  `;
 }
 
 function renderChart(start, cutoff, total, laps, now) {

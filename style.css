@@ -92,6 +92,19 @@ h1 { margin: 0; font-size: 22px; letter-spacing: 0.02em; }
 .due .v { font-size: 26px; font-weight: 700; margin-top: 4px; }
 .due .note { color: var(--ink-dim); font-size: 12px; margin-top: 4px; }
 
+.dupes {
+  margin-top: 12px;
+  background: #2a1f00;
+  border: 1px solid #5a4500;
+  border-radius: 14px;
+  padding: 14px 16px;
+  color: #ffd57a;
+}
+.dupes .k { font-size: 11px; letter-spacing: 0.14em; opacity: 0.9; }
+.dupes .v { font-size: 14px; font-weight: 600; margin-top: 6px; line-height: 1.5; }
+.dupes .v .thin { opacity: 0.7; font-weight: 400; }
+.dupes .note { font-size: 12px; opacity: 0.75; margin-top: 6px; }
+
 .lastlap, .meta {
   margin-top: 12px;
   background: var(--panel);
