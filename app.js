@@ -1,12 +1,29 @@
 // IronHike 2026 — Live lap tracker dashboard
 //
-// SETUP: paste the two published-to-web CSV URLs from your Google Sheet.
-// File → Share → Publish to web → choose the tab → CSV.
-const LAPS_CSV_URL   = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRTaIypPNTbi03yMGIVJacrZ3P6sUpohgU6o2ulD2jFXeztKu_-pP2ZvOUT-5szUKdNwon3DYWrT18R/pub?gid=182922486&single=true&output=csv";
-const CONFIG_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRTaIypPNTbi03yMGIVJacrZ3P6sUpohgU6o2ulD2jFXeztKu_-pP2ZvOUT-5szUKdNwon3DYWrT18R/pub?gid=1079718579&single=true&output=csv";
+// Production reads from the published Google Sheet CSVs below.
+// Simulation: append ?sim=NAME (see sim/index.html) to load pre-baked QA data.
+// Time-travel: append ?simNow=2026-06-05T18:00:00-04:00 to pretend "now" is that moment.
+const PROD_LAPS_CSV_URL   = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRTaIypPNTbi03yMGIVJacrZ3P6sUpohgU6o2ulD2jFXeztKu_-pP2ZvOUT-5szUKdNwon3DYWrT18R/pub?gid=182922486&single=true&output=csv";
+const PROD_CONFIG_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRTaIypPNTbi03yMGIVJacrZ3P6sUpohgU6o2ulD2jFXeztKu_-pP2ZvOUT-5szUKdNwon3DYWrT18R/pub?gid=1079718579&single=true&output=csv";
 
 const REFRESH_MS    = 60_000;
 const REST_MIN      = 45; // minutes between summits before status flips to "Resting"
+
+// ---------- sim / time-travel ----------
+const params = new URLSearchParams(location.search);
+const SIM_NAME = params.get("sim");
+let SIM_NOW = null;
+if (params.get("simNow")) {
+  const d = new Date(params.get("simNow"));
+  if (!isNaN(d)) SIM_NOW = d;
+}
+let LAPS_CSV_URL   = PROD_LAPS_CSV_URL;
+let CONFIG_CSV_URL = PROD_CONFIG_CSV_URL;
+if (SIM_NAME) {
+  LAPS_CSV_URL   = `./sim/${SIM_NAME}-laps.csv`;
+  CONFIG_CSV_URL = `./sim/${SIM_NAME}-config.csv`;
+}
+function getNow() { return SIM_NOW ? new Date(SIM_NOW.getTime()) : new Date(); }
 
 // Fallback config — overridden by values in the `config` sheet tab once it loads.
 const FALLBACK_CONFIG = {
@@ -98,7 +115,7 @@ const fmtInt = n => n.toLocaleString("en-US", { maximumFractionDigits: 0 });
 let chart = null;
 
 function render(cfg, laps) {
-  const now = new Date();
+  const now = getNow();
   const start = new Date(cfg.start_iso);
   const cutoff = new Date(cfg.cutoff_iso);
   const total = cfg.total_laps;
@@ -246,6 +263,20 @@ function renderChart(start, cutoff, total, laps, now) {
     },
   });
 }
+
+// ---------- sim banner ----------
+
+function installSimBanner() {
+  if (!SIM_NAME && !SIM_NOW) return;
+  const b = document.createElement("div");
+  b.id = "sim-banner";
+  const parts = [];
+  if (SIM_NAME) parts.push(`SIM: ${SIM_NAME}`);
+  if (SIM_NOW) parts.push(`now = ${SIM_NOW.toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}`);
+  b.innerHTML = parts.join(" · ") + ' · <a href="./">exit</a>';
+  document.body.prepend(b);
+}
+installSimBanner();
 
 // ---------- main loop ----------
 

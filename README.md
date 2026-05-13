@@ -31,6 +31,30 @@ One-off live dashboard for Matt Ricci's IronHike Spring 2026 Everest attempt —
 - Time since last summit + Active/Resting status (45-min threshold)
 - Chart: cumulative laps vs. required-pace diagonal
 
+## Simulation mode (QA before race day)
+
+The dashboard supports query params for pre-race testing without touching the real Google Sheet:
+
+- `?sim=NAME` — loads pre-baked CSVs from `sim/` and a matching simulated "now". Available names: `ontrack`, `ahead`, `behind`, `resting`, `finished`, `cutoff-passed`.
+- `?simNow=2026-06-06T03:00:00-04:00` — time-travel. Pretends "now" is this moment. Works with real Google Sheet data too.
+- Both params can combine: `?sim=ontrack&simNow=2026-06-05T22:00:00-04:00` overrides the scenario's default sim time.
+
+**Scenario menu:** open `/sim/` in the browser for a tappable list of all scenarios.
+
+**Sim banner:** when either param is active, a yellow banner appears at the top of the dashboard.
+
+**Regenerating scenarios:** `python3 sim/generate.py` rebuilds the CSVs and `manifest.json`.
+
+## Local development
+
+GitHub Pages serves over HTTPS, but browsers block `fetch` from `file://` origins. To test locally:
+
+```
+cd ironhike-tracker
+python3 -m http.server 8000
+# then open http://localhost:8000/ or http://localhost:8000/sim/
+```
+
 ## Stack
 
 Plain HTML/CSS/JS. Chart.js via CDN. No build step.

@@ -120,3 +120,17 @@ footer {
   font-size: 12px;
 }
 footer .thin { opacity: 0.6; margin-top: 2px; font-size: 11px; }
+
+#sim-banner {
+  background: #2a1f00;
+  color: #ffd57a;
+  border-bottom: 1px solid #4a3a00;
+  padding: 8px 12px;
+  text-align: center;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+#sim-banner a { color: #ffd57a; margin-left: 8px; text-decoration: underline; }
