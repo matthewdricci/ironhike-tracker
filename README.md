@@ -55,6 +55,12 @@ python3 -m http.server 8000
 # then open http://localhost:8000/ or http://localhost:8000/sim/
 ```
 
+## Push notifications
+
+Self-hosted Web Push via a tiny Cloudflare Worker in `push-worker/`. Pattern ported from `bth-messaging-agent`. The Worker stores subscriptions in D1 and signs/encrypts pushes with VAPID. iPhone Shortcut hits `/notify` with a shared-secret bearer token; Worker fans out to every subscribed device.
+
+See vault notes `Push setup.md` for full details on endpoints, secrets, and maintenance.
+
 ## Stack
 
-Plain HTML/CSS/JS. Chart.js via CDN. No build step.
+Plain HTML/CSS/JS. Chart.js via CDN. No build step. Push backend on Cloudflare Workers + D1.

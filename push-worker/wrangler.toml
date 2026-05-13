@@ -1,0 +1,17 @@
+name = "ironhike-push"
+main = "src/index.ts"
+compatibility_date = "2026-05-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "ironhike-push"
+database_id = "ef2f9020-ae51-4b61-aaf2-f586bebc3a53"
+
+[vars]
+VAPID_SUBJECT = "mailto:matthewdricci@gmail.com"
+ALLOWED_ORIGIN = "https://matthewdricci.github.io"
+
+# Secrets set via `wrangler secret put`:
+#   VAPID_PUBLIC_KEY
+#   VAPID_PRIVATE_KEY
+#   NOTIFY_SECRET

@@ -10,10 +10,9 @@ const REFRESH_MS    = 60_000;
 const REST_MIN      = 45; // minutes between summits before status flips to "Resting"
 const DUP_SEC       = 45; // consecutive timestamps closer than this look like accidental double-taps
 
-// OneSignal push notifications.
-// Paste your OneSignal App ID here after creating the app at onesignal.com.
-// Until set, the subscribe button is hidden. See vault notes: "OneSignal setup.md".
-const ONESIGNAL_APP_ID = "REPLACE_WITH_ONESIGNAL_APP_ID";
+// Web Push backend (self-hosted Cloudflare Worker).
+const PUSH_WORKER_URL  = "https://ironhike-push.beyond-the-hudson-918.workers.dev";
+const VAPID_PUBLIC_KEY = "BF9wwg-Dj93wNjIPdXisxSNg5wJpzHVD62Jag-HttBRiS1RZ1VmQgMvo0kTLHeFSrV9F7ca2xT0-PTQ42YxVqR0";
 
 // ---------- sim / time-travel ----------
 const params = new URLSearchParams(location.search);
@@ -320,49 +319,89 @@ function installSimBanner() {
 }
 installSimBanner();
 
-// ---------- OneSignal subscribe ----------
+// ---------- Web Push subscribe ----------
+//
+// Standard Web Push API: registers our service worker, asks for permission,
+// calls pushManager.subscribe() with our VAPID public key, POSTs the resulting
+// subscription to the Worker.
 
-function installPushSubscribe() {
-  if (!ONESIGNAL_APP_ID || ONESIGNAL_APP_ID.startsWith("REPLACE_WITH")) return;
-  if (SIM_NAME || SIM_NOW) return; // skip in sim mode
-  // Load SDK
-  const s = document.createElement("script");
-  s.src = "https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js";
-  s.defer = true;
-  document.head.appendChild(s);
-  window.OneSignalDeferred = window.OneSignalDeferred || [];
-  window.OneSignalDeferred.push(async function(OneSignal) {
-    await OneSignal.init({
-      appId: ONESIGNAL_APP_ID,
-      allowLocalhostAsSecureOrigin: true,
-      notifyButton: { enable: false },
-    });
-    renderPushButton(OneSignal);
-    OneSignal.User.PushSubscription.addEventListener("change", () => renderPushButton(OneSignal));
-  });
-}
+async function installPushSubscribe() {
+  if (SIM_NAME || SIM_NOW) return;
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+  if (!VAPID_PUBLIC_KEY || VAPID_PUBLIC_KEY.startsWith("REPLACE_WITH")) return;
 
-async function renderPushButton(OneSignal) {
   const btn = document.getElementById("push-btn");
   if (!btn) return;
-  const sub = OneSignal.User.PushSubscription;
-  if (sub.optedIn) {
-    btn.textContent = "🔔 Subscribed — you'll get a push each lap";
-    btn.classList.add("subscribed");
-  } else {
-    btn.textContent = "🔔 Get notified when Matt summits";
-    btn.classList.remove("subscribed");
+
+  let reg;
+  try {
+    reg = await navigator.serviceWorker.register("./sw.js");
+  } catch (e) {
+    console.error("SW register failed", e);
+    return;
   }
-  btn.hidden = false;
-  btn.onclick = async () => {
-    if (sub.optedIn) {
-      await OneSignal.User.PushSubscription.optOut();
+
+  const refresh = async () => {
+    const sub = await reg.pushManager.getSubscription();
+    if (sub) {
+      btn.textContent = "🔔 Subscribed — you'll get a push each lap";
+      btn.classList.add("subscribed");
     } else {
-      await OneSignal.Notifications.requestPermission();
-      await OneSignal.User.PushSubscription.optIn();
+      btn.textContent = "🔔 Get notified when Matt summits";
+      btn.classList.remove("subscribed");
+    }
+    btn.hidden = false;
+  };
+
+  btn.onclick = async () => {
+    btn.disabled = true;
+    try {
+      const existing = await reg.pushManager.getSubscription();
+      if (existing) {
+        await fetch(PUSH_WORKER_URL + "/unsubscribe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ endpoint: existing.endpoint }),
+        });
+        await existing.unsubscribe();
+      } else {
+        const perm = await Notification.requestPermission();
+        if (perm !== "granted") return;
+        const sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+        });
+        const json = sub.toJSON();
+        await fetch(PUSH_WORKER_URL + "/subscribe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            endpoint: json.endpoint,
+            keys: { p256dh: json.keys.p256dh, auth: json.keys.auth },
+          }),
+        });
+      }
+      await refresh();
+    } catch (e) {
+      console.error("push subscribe failed", e);
+      alert("Push subscription failed: " + (e.message || e));
+    } finally {
+      btn.disabled = false;
     }
   };
+
+  await refresh();
 }
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const raw = atob(base64);
+  const out = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+  return out;
+}
+
 installPushSubscribe();
 
 // ---------- main loop ----------
