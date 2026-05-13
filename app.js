@@ -2,8 +2,8 @@
 //
 // SETUP: paste the two published-to-web CSV URLs from your Google Sheet.
 // File → Share → Publish to web → choose the tab → CSV.
-const LAPS_CSV_URL   = "REPLACE_WITH_LAPS_CSV_URL";
-const CONFIG_CSV_URL = "REPLACE_WITH_CONFIG_CSV_URL";
+const LAPS_CSV_URL   = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRTaIypPNTbi03yMGIVJacrZ3P6sUpohgU6o2ulD2jFXeztKu_-pP2ZvOUT-5szUKdNwon3DYWrT18R/pub?gid=182922486&single=true&output=csv";
+const CONFIG_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRTaIypPNTbi03yMGIVJacrZ3P6sUpohgU6o2ulD2jFXeztKu_-pP2ZvOUT-5szUKdNwon3DYWrT18R/pub?gid=1079718579&single=true&output=csv";
 
 const REFRESH_MS    = 60_000;
 const REST_MIN      = 45; // minutes between summits before status flips to "Resting"
