@@ -137,13 +137,9 @@ function render(cfg, laps) {
   document.getElementById("elapsed").textContent   = elapsedMs > 0 ? fmtDur(elapsedMs) : "not started";
   document.getElementById("remaining").textContent = cutoffMs > 0 ? fmtDur(cutoffMs) : "CUTOFF PASSED";
 
-  // BUDGET: how often you need to bag a lap from now on to finish on time.
+  // Budget per lap (used for both the BUFFER projection and NEXT LAP DUE BY deadline).
   const budgetMs = remainingLaps > 0 && cutoffMs > 0 ? cutoffMs / remainingLaps : null;
-  document.getElementById("budget").textContent = remainingLaps === 0 ? "—" : fmtPerLap(budgetMs);
-
-  // ACTUAL: cumulative pace (includes all rest). Honest, not flattering.
   const actualMs = done > 0 && elapsedMs > 0 ? elapsedMs / done : null;
-  document.getElementById("actual").textContent = fmtPerLap(actualMs);
 
   // BUFFER: projected finish vs cutoff, using cumulative pace.
   const bufferBox = document.getElementById("buffer-box");
@@ -156,13 +152,35 @@ function render(cfg, laps) {
   } else if (remainingLaps === 0) {
     bufferEl.textContent = "FINISHED";
     bufferBox.classList.add("good");
-    bufferNote.textContent = `at ${laps[laps.length-1].t.toLocaleString()}`;
+    bufferNote.textContent = "at " + laps[laps.length-1].t.toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  } else if (cutoffMs <= 0) {
+    bufferEl.textContent = "CUTOFF PASSED";
+    bufferBox.classList.add("bad");
+    bufferNote.textContent = `${done}/${total} laps completed`;
   } else {
     const projectedFinish = new Date(now.getTime() + remainingLaps * actualMs);
     const buf = cutoff - projectedFinish;
-    bufferEl.textContent = (buf >= 0 ? "+" : "") + fmtDur(buf) + (buf >= 0 ? " ahead" : " behind");
+    bufferEl.textContent = (buf >= 0 ? "+" : "−") + fmtDur(Math.abs(buf)) + (buf >= 0 ? " ahead" : " behind");
     bufferBox.classList.add(buf >= 0 ? "good" : "bad");
-    bufferNote.textContent = "projected finish " + projectedFinish.toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" });
+    bufferNote.textContent = "projected finish " + projectedFinish.toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  }
+
+  // NEXT LAP DUE BY: wall-clock deadline for the next lap based on budget.
+  const dueEl  = document.getElementById("due-by");
+  const dueNote = document.getElementById("due-note");
+  if (remainingLaps === 0) {
+    dueEl.textContent = "—";
+    dueNote.textContent = "all laps complete";
+  } else if (cutoffMs <= 0) {
+    dueEl.textContent = "—";
+    dueNote.textContent = "cutoff passed";
+  } else if (elapsedMs <= 0) {
+    dueEl.textContent = start.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+    dueNote.textContent = "event start";
+  } else {
+    const dueAt = new Date(now.getTime() + budgetMs);
+    dueEl.textContent = dueAt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+    dueNote.textContent = `${fmtDur(budgetMs)} from now — your running budget`;
   }
 
   // Last summit + status

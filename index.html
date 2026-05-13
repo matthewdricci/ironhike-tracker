@@ -29,17 +29,20 @@
       </div>
     </section>
 
-    <section class="stats">
-      <div class="stat"><div class="k">ELAPSED</div><div class="v" id="elapsed">—</div></div>
-      <div class="stat"><div class="k">TO CUTOFF</div><div class="v" id="remaining">—</div></div>
-      <div class="stat"><div class="k">BUDGET / LAP</div><div class="v" id="budget">—</div></div>
-      <div class="stat"><div class="k">ACTUAL / LAP</div><div class="v" id="actual">—</div></div>
+    <section class="chart-wrap">
+      <canvas id="chart" aria-label="Cumulative laps over time"></canvas>
     </section>
 
     <section class="buffer" id="buffer-box">
-      <div class="k">PROJECTED BUFFER</div>
+      <div class="k">BUFFER</div>
       <div class="v" id="buffer">—</div>
       <div class="note" id="buffer-note"></div>
+    </section>
+
+    <section class="due">
+      <div class="k">NEXT LAP DUE BY</div>
+      <div class="v" id="due-by">—</div>
+      <div class="note" id="due-note"></div>
     </section>
 
     <section class="lastlap">
@@ -47,8 +50,9 @@
       <div class="row"><span class="k">STATUS</span><span class="v" id="status">—</span></div>
     </section>
 
-    <section class="chart-wrap">
-      <canvas id="chart" aria-label="Cumulative laps over time"></canvas>
+    <section class="meta">
+      <div class="row"><span class="k">ELAPSED</span><span class="v" id="elapsed">—</span></div>
+      <div class="row"><span class="k">TO CUTOFF</span><span class="v" id="remaining">—</span></div>
     </section>
 
     <footer>
