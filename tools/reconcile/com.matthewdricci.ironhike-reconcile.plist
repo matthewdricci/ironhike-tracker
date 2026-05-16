@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.matthewdricci.ironhike-reconcile</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/bin/python3</string>
+    <string>/Users/matthewricci/ironhike-tracker/tools/reconcile/reconcile.py</string>
+    <string>--event</string>
+    <string>ironhike</string>
+    <string>--since</string>
+    <string>2026-06-04T12:00:00-04:00</string>
+    <string>--backup</string>
+    <string>/Users/matthewricci/Library/Mobile Documents/com~apple~CloudDocs/Automations/IronHike-backup.txt</string>
+  </array>
+
+  <!-- Every 30 minutes. -->
+  <key>StartInterval</key>
+  <integer>1800</integer>
+
+  <!-- Fire once on load so we see immediate output for verification. -->
+  <key>RunAtLoad</key>
+  <true/>
+
+  <key>StandardOutPath</key>
+  <string>/Users/matthewricci/Library/Logs/ironhike-reconcile.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/matthewricci/Library/Logs/ironhike-reconcile.log</string>
+</dict>
+</plist>
