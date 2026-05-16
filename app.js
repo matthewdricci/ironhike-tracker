@@ -200,8 +200,16 @@ function render(cfg, laps) {
     document.getElementById("status").textContent = elapsedMs < 0 ? "pre-event" : "waiting for lap 1";
   }
 
+  // For burn-down chart color: are we currently ahead (less remaining than required)?
+  let ahead = null;
+  if (start && cutoff && done > 0 && cutoffMs > 0) {
+    const requiredRemaining = total * (cutoff - now) / (cutoff - start);
+    const actualRemaining   = total - done;
+    ahead = actualRemaining < requiredRemaining;
+  }
+
   renderDupes(laps);
-  renderChart(start, cutoff, total, laps, now);
+  renderChart(start, cutoff, total, laps, now, ahead);
 
   document.getElementById("updated").textContent =
     "updated " + now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit" });
@@ -224,27 +232,35 @@ function renderDupes(laps) {
   `;
 }
 
-function renderChart(start, cutoff, total, laps, now) {
+function renderChart(start, cutoff, total, laps, now, ahead) {
   const ctx = document.getElementById("chart");
 
-  // Step series: at each lap timestamp, cumulative count jumps to N.
-  const stepPts = [{ x: start, y: 0 }];
+  // Burn-down: stairsteps DOWN from total toward 0.
+  const stepPts = [{ x: start, y: total }];
   laps.forEach((lap, i) => {
-    stepPts.push({ x: lap.t, y: i });       // hold previous value to this point
-    stepPts.push({ x: lap.t, y: i + 1 });   // then jump
+    stepPts.push({ x: lap.t, y: total - i });
+    stepPts.push({ x: lap.t, y: total - (i + 1) });
   });
-  // Extend horizontal line to "now" so the curve shows current standing.
   if (laps.length > 0 && now > laps[laps.length - 1].t) {
-    stepPts.push({ x: now, y: laps.length });
+    stepPts.push({ x: now, y: total - laps.length });
   } else if (laps.length === 0 && now > start) {
-    stepPts.push({ x: now, y: 0 });
+    stepPts.push({ x: now, y: total });
   }
 
-  const required = [{ x: start, y: 0 }, { x: cutoff, y: total }];
+  // Required pace: (start, total) → (cutoff, 0). Hitting zero = done in time.
+  const required = [{ x: start, y: total }, { x: cutoff, y: 0 }];
+
+  // In burn-down, "ahead" = curve is BELOW the diagonal (less remaining than expected).
+  const remainingColor = ahead === true  ? "#4ade80"
+                       : ahead === false ? "#ef4444"
+                                         : "#ffb648";
+  const remainingFill  = ahead === true  ? "rgba(74, 222, 128, 0.15)"
+                       : ahead === false ? "rgba(239, 68, 68, 0.15)"
+                                         : "rgba(255, 182, 72, 0.15)";
 
   const datasets = [
     {
-      label: "Required pace",
+      label: "Required",
       data: required,
       borderColor: "rgba(152, 162, 175, 0.7)",
       borderDash: [6, 6],
@@ -254,10 +270,10 @@ function renderChart(start, cutoff, total, laps, now) {
       tension: 0,
     },
     {
-      label: "Your progress",
+      label: "Remaining",
       data: stepPts,
-      borderColor: "#ffb648",
-      backgroundColor: "rgba(255, 182, 72, 0.15)",
+      borderColor: remainingColor,
+      backgroundColor: remainingFill,
       borderWidth: 2.5,
       pointRadius: 0,
       fill: true,
@@ -282,7 +298,7 @@ function renderChart(start, cutoff, total, laps, now) {
       maintainAspectRatio: false,
       animation: false,
       plugins: {
-        legend: { display: true, labels: { color: "#98a2af", boxWidth: 12, font: { size: 11 } } },
+        legend: { display: false },
         tooltip: { enabled: false },
       },
       scales: {
