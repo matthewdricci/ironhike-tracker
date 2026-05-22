@@ -1,17 +1,16 @@
 // IronHike 2026 — Live lap tracker dashboard
 //
-// Production reads from the published Google Sheet CSVs below.
-// Simulation: append ?sim=NAME (see sim/index.html) to load pre-baked QA data.
+// Production reads laps from the Cloudflare Worker /laps?event=ironhike endpoint.
+// Simulation: append ?sim=NAME (see sim/index.html) to load pre-baked QA CSVs.
 // Time-travel: append ?simNow=2026-06-05T18:00:00-04:00 to pretend "now" is that moment.
-const PROD_LAPS_CSV_URL   = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRTaIypPNTbi03yMGIVJacrZ3P6sUpohgU6o2ulD2jFXeztKu_-pP2ZvOUT-5szUKdNwon3DYWrT18R/pub?gid=182922486&single=true&output=csv";
-const PROD_CONFIG_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRTaIypPNTbi03yMGIVJacrZ3P6sUpohgU6o2ulD2jFXeztKu_-pP2ZvOUT-5szUKdNwon3DYWrT18R/pub?gid=1079718579&single=true&output=csv";
 
 const REFRESH_MS    = 60_000;
 const REST_MIN      = 45; // minutes between summits before status flips to "Resting"
 const DUP_SEC       = 45; // consecutive timestamps closer than this look like accidental double-taps
 
-// Web Push backend (self-hosted Cloudflare Worker).
+// Self-hosted Cloudflare Worker — laps API + Web Push.
 const PUSH_WORKER_URL  = "https://ironhike-push.beyond-the-hudson-918.workers.dev";
+const LAPS_URL         = `${PUSH_WORKER_URL}/laps?event=ironhike`;
 const VAPID_PUBLIC_KEY = "BF9wwg-Dj93wNjIPdXisxSNg5wJpzHVD62Jag-HttBRiS1RZ1VmQgMvo0kTLHeFSrV9F7ca2xT0-PTQ42YxVqR0";
 
 // ---------- sim / time-travel ----------
@@ -22,16 +21,12 @@ if (params.get("simNow")) {
   const d = new Date(params.get("simNow"));
   if (!isNaN(d)) SIM_NOW = d;
 }
-let LAPS_CSV_URL   = PROD_LAPS_CSV_URL;
-let CONFIG_CSV_URL = PROD_CONFIG_CSV_URL;
-if (SIM_NAME) {
-  LAPS_CSV_URL   = `./sim/${SIM_NAME}-laps.csv`;
-  CONFIG_CSV_URL = `./sim/${SIM_NAME}-config.csv`;
-}
+const SIM_LAPS_CSV_URL   = SIM_NAME ? `./sim/${SIM_NAME}-laps.csv`   : null;
+const SIM_CONFIG_CSV_URL = SIM_NAME ? `./sim/${SIM_NAME}-config.csv` : null;
 function getNow() { return SIM_NOW ? new Date(SIM_NOW.getTime()) : new Date(); }
 
-// Fallback config — overridden by values in the `config` sheet tab once it loads.
-const FALLBACK_CONFIG = {
+// Event config is fixed (race-director-controlled). Sim CSVs can override it for time-travel testing.
+const CONFIG = {
   start_iso:            "2026-06-04T12:00:00-04:00",
   cutoff_iso:           "2026-06-07T12:00:00-04:00",
   total_laps:           49,
@@ -39,7 +34,19 @@ const FALLBACK_CONFIG = {
   athlete_name:         "Matt Ricci",
 };
 
-// ---------- CSV ----------
+// ---------- data ----------
+
+async function fetchLapsFromWorker() {
+  const r = await fetch(LAPS_URL + "&cachebust=" + Date.now());
+  if (!r.ok) throw new Error("fetch " + LAPS_URL + " → " + r.status);
+  const json = await r.json();
+  const out = [];
+  for (const row of (json.laps || [])) {
+    const d = new Date(row.timestamp_iso);
+    if (!isNaN(d)) out.push({ t: d, note: (row.note || "").trim() });
+  }
+  return out.sort((a, b) => a.t - b.t);
+}
 
 async function fetchCsv(url) {
   const r = await fetch(url + (url.includes("?") ? "&" : "?") + "cachebust=" + Date.now());
@@ -68,17 +75,15 @@ function parseCsv(text) {
   return rows;
 }
 
-function configFromCsv(rows) {
-  const cfg = { ...FALLBACK_CONFIG };
+function applyConfigCsv(rows) {
   for (const r of rows) {
     if (!r || r.length < 2) continue;
     const k = (r[0] || "").trim();
     const v = (r[1] || "").trim();
     if (!k || k.toLowerCase() === "key") continue;
-    if (k === "total_laps" || k === "elevation_ft_per_lap") cfg[k] = Number(v);
-    else cfg[k] = v;
+    if (k === "total_laps" || k === "elevation_ft_per_lap") CONFIG[k] = Number(v);
+    else CONFIG[k] = v;
   }
-  return cfg;
 }
 
 function lapsFromCsv(rows) {
@@ -119,19 +124,19 @@ const fmtInt = n => n.toLocaleString("en-US", { maximumFractionDigits: 0 });
 
 let chart = null;
 
-function render(cfg, laps) {
+function render(laps) {
   const now = getNow();
-  const start = new Date(cfg.start_iso);
-  const cutoff = new Date(cfg.cutoff_iso);
-  const total = cfg.total_laps;
-  const ft = cfg.elevation_ft_per_lap;
+  const start = new Date(CONFIG.start_iso);
+  const cutoff = new Date(CONFIG.cutoff_iso);
+  const total = CONFIG.total_laps;
+  const ft = CONFIG.elevation_ft_per_lap;
 
   const done = laps.length;
   const remainingLaps = Math.max(0, total - done);
   const elapsedMs = now - start;
   const cutoffMs  = cutoff - now;
 
-  document.getElementById("title").textContent = `IronHike 2026 — ${cfg.athlete_name}`;
+  document.getElementById("title").textContent = `IronHike 2026 — ${CONFIG.athlete_name}`;
   document.getElementById("laps-done").textContent  = done;
   document.getElementById("laps-total").textContent = total;
   document.getElementById("elevation").textContent  = `${fmtInt(done * ft)} ft / ${fmtInt(total * ft)} ft`;
@@ -228,7 +233,7 @@ function renderDupes(laps) {
   wrap.innerHTML = `
     <div class="k">POSSIBLE DUPLICATE${pairs.length > 1 ? "S" : ""}</div>
     <div class="v">${pairs.map(p => `row ${p.a} &amp; ${p.b} <span class="thin">(${p.gap.toFixed(0)}s apart)</span>`).join("<br>")}</div>
-    <div class="note">If accidental, delete the extra row in the Sheets iOS app.</div>
+    <div class="note">If accidental, use the "Undo IronHike Lap" shortcut on your phone.</div>
   `;
 }
 
@@ -424,13 +429,18 @@ installPushSubscribe();
 
 async function tick() {
   try {
-    const [cfgRows, lapRows] = await Promise.all([
-      fetchCsv(CONFIG_CSV_URL),
-      fetchCsv(LAPS_CSV_URL),
-    ]);
-    const cfg  = configFromCsv(cfgRows);
-    const laps = lapsFromCsv(lapRows);
-    render(cfg, laps);
+    let laps;
+    if (SIM_NAME) {
+      const [cfgRows, lapRows] = await Promise.all([
+        fetchCsv(SIM_CONFIG_CSV_URL),
+        fetchCsv(SIM_LAPS_CSV_URL),
+      ]);
+      applyConfigCsv(cfgRows);
+      laps = lapsFromCsv(lapRows);
+    } else {
+      laps = await fetchLapsFromWorker();
+    }
+    render(laps);
   } catch (e) {
     console.error(e);
     document.getElementById("updated").textContent = "fetch error — retrying";
