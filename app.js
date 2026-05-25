@@ -362,16 +362,31 @@ async function installPushSubscribe() {
     return;
   }
 
+  const topCta = document.getElementById("enable-push-cta");
+  if (topCta) topCta.onclick = () => btn.click();
+
   const refresh = async () => {
     const sub = await reg.pushManager.getSubscription();
+    const inStandalone = isInstalledPWA();
+
     if (sub) {
+      // Subscribed — small bottom button doubles as the unsubscribe affordance.
       btn.textContent = "🔔 Subscribed — you'll get a push each lap";
       btn.classList.add("subscribed");
+      btn.hidden = false;
+      if (topCta) topCta.hidden = true;
+    } else if (inStandalone && Notification.permission !== "denied") {
+      // In the installed PWA, push not yet enabled — show the big top CTA,
+      // hide the small bottom button (avoid two CTAs for the same action).
+      btn.hidden = true;
+      if (topCta) topCta.hidden = false;
     } else {
+      // In Safari pre-install, or permission denied — small bottom button only.
       btn.textContent = "🔔 Get notified when Matt summits";
       btn.classList.remove("subscribed");
+      btn.hidden = false;
+      if (topCta) topCta.hidden = true;
     }
-    btn.hidden = false;
   };
 
   btn.onclick = async () => {
@@ -459,7 +474,8 @@ function initWelcome() {
   // Skip in sim or time-travel mode — those are dev tools, not user flows.
   if (SIM_NAME || SIM_NOW) return;
   if (isInstalledPWA()) {
-    showPushCalloutIfNeeded();
+    // Welcome screen is for getting users INTO the PWA — once installed, the
+    // big push CTA at top of the dashboard takes over. See installPushSubscribe.
     return;
   }
   if (localStorage.getItem(WELCOME_DISMISSED_KEY)) return;
@@ -504,32 +520,6 @@ function dismissWelcome() {
   if (overlay) overlay.hidden = true;
 }
 
-// When opened as an installed PWA and not yet subscribed to push, surface a
-// friendly callout above the dashboard so users don't miss the bell button.
-async function showPushCalloutIfNeeded() {
-  if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
-  try {
-    const reg = await navigator.serviceWorker.getRegistration();
-    if (!reg) return;
-    const sub = await reg.pushManager.getSubscription();
-    if (sub) return; // already subscribed
-    if (Notification.permission === "denied") return; // user said no — don't nag
-
-    // Inject above the dashboard hero.
-    const callout = document.createElement("section");
-    callout.className = "push-callout";
-    callout.innerHTML = `
-      <div class="k">🔔 Turn on race notifications</div>
-      <div class="v">Tap the bell button below to get a push notification each time Matt summits a lap.</div>
-    `;
-    const heroEl = document.querySelector("section.hero");
-    if (heroEl && heroEl.parentNode) {
-      heroEl.parentNode.insertBefore(callout, heroEl.nextSibling);
-    }
-  } catch (e) {
-    console.debug("push callout skipped:", e);
-  }
-}
 
 // ---------- main loop ----------
 

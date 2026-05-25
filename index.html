@@ -20,35 +20,35 @@
   <div id="welcome" class="welcome" hidden>
     <div class="welcome-card">
       <button id="welcome-close" class="welcome-close" aria-label="Close">&times;</button>
-      <div class="welcome-icon">🏔️</div>
-      <h2 id="welcome-title">Watch Matt climb Everest</h2>
-      <p id="welcome-lede">49 laps up Mohawk Mountain. 72 hours. Live updates each summit.</p>
 
       <div id="welcome-ios" class="welcome-steps" hidden>
-        <p class="welcome-instructions-intro">Install this app to get a notification each time Matt summits:</p>
+        <p class="welcome-task">Follow these 3 steps to get race updates on your phone:</p>
         <ol>
-          <li>Tap the <svg class="ios-share-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg> Share button below</li>
+          <li>Tap the <svg class="ios-share-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg> Share button at the bottom of Safari</li>
           <li>Scroll down, tap <strong>Add to Home Screen</strong></li>
-          <li>Open <strong>IronHike</strong> from your home screen, then tap 🔔 to turn on race notifications</li>
+          <li>Open <strong>IronHike</strong> from your home screen, then tap the <strong>🔔 Turn on race notifications</strong> button</li>
         </ol>
       </div>
 
       <div id="welcome-android" class="welcome-steps" hidden>
-        <p class="welcome-instructions-intro">Install this app to get a notification each time Matt summits:</p>
+        <p class="welcome-task">Follow these steps to get race updates on your phone:</p>
         <button id="welcome-install-btn" class="welcome-cta">📲 Add to Home Screen</button>
-        <p class="welcome-fallback">If that doesn't appear: open browser menu (⋮) → <strong>Add to Home screen</strong> or <strong>Install app</strong>.</p>
+        <p class="welcome-fallback">After install, open <strong>IronHike</strong> from your home screen and tap <strong>🔔 Turn on race notifications</strong>.</p>
+        <p class="welcome-fallback-small">If the button above doesn't appear: open browser menu (⋮) → <strong>Add to Home screen</strong> or <strong>Install app</strong>.</p>
       </div>
 
       <div id="welcome-desktop" class="welcome-steps" hidden>
-        <p class="welcome-instructions-intro">For live race notifications, open this URL on your phone:</p>
+        <p class="welcome-task">Open this link on your phone to get race updates:</p>
         <div class="welcome-url">matthewdricci.github.io/ironhike-tracker</div>
-        <p class="welcome-fallback">Or just keep this tab open — the dashboard refreshes itself every 60 seconds.</p>
       </div>
 
+      <p class="welcome-context">IronHike Everest · 49 laps in 72 hours · June 4–7, 2026</p>
     </div>
   </div>
 
   <main>
+    <button id="enable-push-cta" class="enable-push-cta" hidden>🔔 Turn on race notifications</button>
+
     <header>
       <h1 id="title">IronHike 2026</h1>
       <p id="subtitle">Mohawk Mountain, CT &middot; Everest (49 laps)</p>

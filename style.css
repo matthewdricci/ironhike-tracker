@@ -185,7 +185,7 @@ footer .thin { opacity: 0.6; margin-top: 2px; font-size: 11px; }
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 22px;
-  padding: 28px 22px 24px;
+  padding: 52px 22px 24px;
   max-width: 420px;
   width: 100%;
   text-align: center;
@@ -211,28 +211,27 @@ footer .thin { opacity: 0.6; margin-top: 2px; font-size: 11px; }
 }
 .welcome-close:hover { background: var(--panel-2); color: var(--ink); }
 .welcome-close:active { background: var(--panel-2); }
-.welcome-icon {
-  font-size: 52px;
-  line-height: 1;
-  margin-bottom: 8px;
-}
-.welcome-card h2 {
-  margin: 0 0 6px;
-  font-size: 24px;
-  letter-spacing: -0.01em;
-}
-.welcome-card #welcome-lede {
-  color: var(--ink-dim);
-  margin: 0 0 24px;
-  font-size: 14px;
-  line-height: 1.45;
-}
-.welcome-instructions-intro {
+.welcome-task {
   color: var(--ink);
-  font-size: 14px;
-  margin: 0 0 16px;
+  font-size: 17px;
+  font-weight: 600;
+  margin: 0 0 18px;
   text-align: left;
-  font-weight: 500;
+  line-height: 1.4;
+}
+.welcome-context {
+  color: var(--ink-dim);
+  font-size: 12px;
+  margin: 20px 0 0;
+  text-align: center;
+  opacity: 0.7;
+}
+.welcome-fallback-small {
+  color: var(--ink-dim);
+  font-size: 11px;
+  line-height: 1.5;
+  margin: 8px 0 0;
+  opacity: 0.7;
 }
 .welcome-steps ol {
   margin: 0;
@@ -305,23 +304,22 @@ footer .thin { opacity: 0.6; margin-top: 2px; font-size: 11px; }
   margin: 4px 0 0;
 }
 
-/* Inline push-enable callout for standalone PWA, first visit after install */
-.push-callout {
-  margin-top: 14px;
-  background: linear-gradient(135deg, rgba(255, 182, 72, 0.18), rgba(255, 182, 72, 0.06));
-  border: 1px solid rgba(255, 182, 72, 0.35);
+/* Big primary push-enable CTA — shown at top of dashboard in standalone PWA
+   mode when the user hasn't subscribed yet. Replaces the small inline callout. */
+.enable-push-cta {
+  display: block;
+  width: 100%;
+  padding: 18px 16px;
+  background: var(--accent);
+  color: #1a1300;
+  border: none;
   border-radius: 14px;
-  padding: 14px 16px;
-  text-align: center;
+  font-family: inherit;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  margin-bottom: 14px;
+  box-shadow: 0 2px 8px rgba(255, 182, 72, 0.25);
 }
-.push-callout .k {
-  font-size: 13px;
-  color: var(--accent);
-  margin-bottom: 4px;
-  font-weight: 600;
-}
-.push-callout .v {
-  font-size: 13px;
-  color: var(--ink-dim);
-  line-height: 1.4;
-}
+.enable-push-cta:active { opacity: 0.85; transform: translateY(1px); }
