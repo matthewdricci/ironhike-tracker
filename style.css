@@ -304,22 +304,3 @@ footer .thin { opacity: 0.6; margin-top: 2px; font-size: 11px; }
   margin: 4px 0 0;
 }
 
-/* Big primary push-enable CTA — shown at top of dashboard in standalone PWA
-   mode when the user hasn't subscribed yet. Replaces the small inline callout. */
-.enable-push-cta {
-  display: block;
-  width: 100%;
-  padding: 18px 16px;
-  background: var(--accent);
-  color: #1a1300;
-  border: none;
-  border-radius: 14px;
-  font-family: inherit;
-  font-size: 17px;
-  font-weight: 700;
-  letter-spacing: 0.01em;
-  cursor: pointer;
-  margin-bottom: 14px;
-  box-shadow: 0 2px 8px rgba(255, 182, 72, 0.25);
-}
-.enable-push-cta:active { opacity: 0.85; transform: translateY(1px); }

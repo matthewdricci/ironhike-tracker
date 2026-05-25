@@ -362,34 +362,28 @@ async function installPushSubscribe() {
     return;
   }
 
-  const topCta = document.getElementById("enable-push-cta");
-  if (topCta) topCta.onclick = () => btn.click();
-
   const refresh = async () => {
     const sub = await reg.pushManager.getSubscription();
-    const inStandalone = isInstalledPWA();
-
     if (sub) {
-      // Subscribed — small bottom button doubles as the unsubscribe affordance.
       btn.textContent = "🔔 Subscribed — you'll get a push each lap";
       btn.classList.add("subscribed");
-      btn.hidden = false;
-      if (topCta) topCta.hidden = true;
-    } else if (inStandalone && Notification.permission !== "denied") {
-      // In the installed PWA, push not yet enabled — show the big top CTA,
-      // hide the small bottom button (avoid two CTAs for the same action).
-      btn.hidden = true;
-      if (topCta) topCta.hidden = false;
     } else {
-      // In Safari pre-install, or permission denied — small bottom button only.
-      btn.textContent = "🔔 Get notified when Matt summits";
+      btn.textContent = "🔔 Turn on race notifications";
       btn.classList.remove("subscribed");
-      btn.hidden = false;
-      if (topCta) topCta.hidden = true;
     }
+    btn.hidden = false;
   };
 
   btn.onclick = async () => {
+    // Context-aware: in regular Safari, iOS web push is unreliable outside
+    // standalone mode. Redirect to the install instructions instead of
+    // attempting a subscribe that may silently fail or look successful
+    // without actually delivering pushes.
+    if (!isInstalledPWA()) {
+      showWelcomeOverlay();
+      return;
+    }
+
     btn.disabled = true;
     try {
       const existing = await reg.pushManager.getSubscription();
@@ -473,45 +467,52 @@ window.addEventListener("beforeinstallprompt", (e) => {
 function initWelcome() {
   // Skip in sim or time-travel mode — those are dev tools, not user flows.
   if (SIM_NAME || SIM_NOW) return;
-  if (isInstalledPWA()) {
-    // Welcome screen is for getting users INTO the PWA — once installed, the
-    // big push CTA at top of the dashboard takes over. See installPushSubscribe.
-    return;
-  }
+  // Wire up the close + install buttons regardless — needed whether the
+  // welcome is shown automatically or re-opened later from the bell tap.
+  wireWelcomeControls();
+  if (isInstalledPWA()) return;
   if (localStorage.getItem(WELCOME_DISMISSED_KEY)) return;
+  showWelcomeOverlay();
+}
 
+// Show the welcome overlay regardless of localStorage/PWA state. Used by the
+// bell button when tapped in regular Safari — push subscription is unreliable
+// outside standalone mode, so we redirect them to the install instructions.
+function showWelcomeOverlay() {
   const overlay = document.getElementById("welcome");
   if (!overlay) return;
 
   const platform = detectPlatform();
-  const iosPanel = document.getElementById("welcome-ios");
-  const androidPanel = document.getElementById("welcome-android");
-  const desktopPanel = document.getElementById("welcome-desktop");
+  const panels = {
+    ios:     document.getElementById("welcome-ios"),
+    android: document.getElementById("welcome-android"),
+    desktop: document.getElementById("welcome-desktop"),
+  };
+  // Hide all panels first, then show just the active one — keeps re-opens clean.
+  for (const k in panels) if (panels[k]) panels[k].hidden = true;
+  const active = panels[platform] || panels.desktop;
+  if (active) active.hidden = false;
 
-  if (platform === "ios" && iosPanel) iosPanel.hidden = false;
-  else if (platform === "android" && androidPanel) {
-    androidPanel.hidden = false;
-    const btn = document.getElementById("welcome-install-btn");
-    if (btn) {
-      btn.onclick = async () => {
-        if (!_deferredInstallPrompt) {
-          alert("Install prompt isn't available in this browser. Open your browser menu (⋮) and look for 'Add to Home Screen' or 'Install app'.");
-          return;
-        }
-        _deferredInstallPrompt.prompt();
-        const choice = await _deferredInstallPrompt.userChoice;
-        _deferredInstallPrompt = null;
-        if (choice.outcome === "accepted") dismissWelcome();
-      };
-    }
-  } else if (desktopPanel) {
-    desktopPanel.hidden = false;
-  }
+  overlay.hidden = false;
+}
 
+function wireWelcomeControls() {
   const closeBtn = document.getElementById("welcome-close");
   if (closeBtn) closeBtn.onclick = dismissWelcome;
 
-  overlay.hidden = false;
+  const installBtn = document.getElementById("welcome-install-btn");
+  if (installBtn) {
+    installBtn.onclick = async () => {
+      if (!_deferredInstallPrompt) {
+        alert("Install prompt isn't available in this browser. Open your browser menu (⋮) and look for 'Add to Home Screen' or 'Install app'.");
+        return;
+      }
+      _deferredInstallPrompt.prompt();
+      const choice = await _deferredInstallPrompt.userChoice;
+      _deferredInstallPrompt = null;
+      if (choice.outcome === "accepted") dismissWelcome();
+    };
+  }
 }
 
 function dismissWelcome() {
