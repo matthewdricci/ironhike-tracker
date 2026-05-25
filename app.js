@@ -492,8 +492,8 @@ function initWelcome() {
     desktopPanel.hidden = false;
   }
 
-  const dismiss = document.getElementById("welcome-dismiss");
-  if (dismiss) dismiss.onclick = dismissWelcome;
+  const closeBtn = document.getElementById("welcome-close");
+  if (closeBtn) closeBtn.onclick = dismissWelcome;
 
   overlay.hidden = false;
 }

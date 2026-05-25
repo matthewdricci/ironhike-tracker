@@ -179,16 +179,38 @@ footer .thin { opacity: 0.6; margin-top: 2px; font-size: 11px; }
   padding: max(env(safe-area-inset-top), 20px) 16px 24px;
   overflow-y: auto;
 }
+.welcome[hidden] { display: none; }
 .welcome-card {
+  position: relative;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 22px;
-  padding: 28px 22px 20px;
+  padding: 28px 22px 24px;
   max-width: 420px;
   width: 100%;
   text-align: center;
   margin: auto 0;
 }
+.welcome-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--ink-dim);
+  font-size: 26px;
+  line-height: 1;
+  cursor: pointer;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.welcome-close:hover { background: var(--panel-2); color: var(--ink); }
+.welcome-close:active { background: var(--panel-2); }
 .welcome-icon {
   font-size: 52px;
   line-height: 1;
@@ -282,20 +304,6 @@ footer .thin { opacity: 0.6; margin-top: 2px; font-size: 11px; }
   line-height: 1.5;
   margin: 4px 0 0;
 }
-.welcome-dismiss {
-  display: block;
-  width: 100%;
-  margin-top: 20px;
-  padding: 12px;
-  background: transparent;
-  color: var(--ink-dim);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  font-family: inherit;
-  font-size: 14px;
-  cursor: pointer;
-}
-.welcome-dismiss:active { background: var(--panel-2); }
 
 /* Inline push-enable callout for standalone PWA, first visit after install */
 .push-callout {
