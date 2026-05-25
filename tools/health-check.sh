@@ -120,7 +120,9 @@ if [[ -f "$BACKUP" ]]; then
   bytes=$(stat -f "%z" "$BACKUP" 2>/dev/null || echo "?")
   lines=$(wc -l < "$BACKUP" | tr -d ' ')
   log_count=$(grep -E "^[0-9]{4}-[0-9]{2}-[0-9]{2}T" "$BACKUP" 2>/dev/null | wc -l | tr -d ' ')
-  undo_count=$(grep -ci "^UNDO" "$BACKUP" 2>/dev/null || echo "0")
+  # grep -c exits 1 when there are zero matches, which combined with `|| echo 0`
+  # produced "0\n0" output. Pipe through grep -c instead — `wc -l` always exits 0.
+  undo_count=$(grep -ci "^UNDO" "$BACKUP" 2>/dev/null; true)
   info "size: ${bytes}B · lines: $lines · log timestamps: $log_count · UNDO markers: $undo_count"
 
   # Read access test: can a launchd-style python read it?
