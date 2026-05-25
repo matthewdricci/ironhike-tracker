@@ -8,6 +8,16 @@ No LLM in the loop. Just diff + replay. Deliberate scope choice (see `Post-morte
 
 ## One-time setup
 
+### 0) Grant Full Disk Access to Homebrew's python3
+
+The backup file lives in `~/Library/Mobile Documents/` (iCloud Drive). macOS Ventura+ gates access via TCC, and launchd-spawned processes don't inherit Full Disk Access from the user session.
+
+The plist runs `/opt/homebrew/bin/python3` (Homebrew's standalone Python — a single Mach-O binary). The system `/usr/bin/python3` is an Apple stub that re-execs the real interpreter, and FDA grants don't propagate across that re-exec, so Homebrew's binary is the reliable path.
+
+1. System Settings → **Privacy & Security** → **Full Disk Access**
+2. Click **+**, **Cmd+Shift+G** in the picker, paste `/opt/homebrew/bin/python3`, Open
+3. Confirm toggle is ON
+
 ### 1) Store the NOTIFY_SECRET in macOS Keychain
 
 ```bash

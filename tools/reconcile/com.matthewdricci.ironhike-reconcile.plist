@@ -7,7 +7,7 @@
 
   <key>ProgramArguments</key>
   <array>
-    <string>/usr/bin/python3</string>
+    <string>/opt/homebrew/bin/python3</string>
     <string>/Users/matt/ironhike-tracker/tools/reconcile/reconcile.py</string>
     <string>--event</string>
     <string>ironhike</string>
