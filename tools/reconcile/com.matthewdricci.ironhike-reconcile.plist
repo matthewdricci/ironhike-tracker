@@ -8,13 +8,13 @@
   <key>ProgramArguments</key>
   <array>
     <string>/usr/bin/python3</string>
-    <string>/Users/matthewricci/ironhike-tracker/tools/reconcile/reconcile.py</string>
+    <string>/Users/matt/ironhike-tracker/tools/reconcile/reconcile.py</string>
     <string>--event</string>
     <string>ironhike</string>
     <string>--since</string>
     <string>2026-06-04T12:00:00-04:00</string>
     <string>--backup</string>
-    <string>/Users/matthewricci/Library/Mobile Documents/com~apple~CloudDocs/Automations/IronHike-backup.txt</string>
+    <string>/Users/matt/Library/Mobile Documents/com~apple~CloudDocs/Automations/IronHike-backup.txt</string>
   </array>
 
   <!-- Every 30 minutes. -->
@@ -26,8 +26,8 @@
   <true/>
 
   <key>StandardOutPath</key>
-  <string>/Users/matthewricci/Library/Logs/ironhike-reconcile.log</string>
+  <string>/Users/matt/Library/Logs/ironhike-reconcile.log</string>
   <key>StandardErrorPath</key>
-  <string>/Users/matthewricci/Library/Logs/ironhike-reconcile.log</string>
+  <string>/Users/matt/Library/Logs/ironhike-reconcile.log</string>
 </dict>
 </plist>

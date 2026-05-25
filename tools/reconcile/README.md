@@ -19,10 +19,10 @@ security add-generic-password -s ironhike-notify-secret -a "$USER" -w 'njaYaqf7d
 ### 2) Manually test the script first (dry run, no replays)
 
 ```bash
-python3 /Users/matthewricci/ironhike-tracker/tools/reconcile/reconcile.py \
+python3 /Users/matt/ironhike-tracker/tools/reconcile/reconcile.py \
   --event ironhike \
   --since 2026-06-04T12:00:00-04:00 \
-  --backup "/Users/matthewricci/Library/Mobile Documents/com~apple~CloudDocs/Automations/IronHike-backup.txt" \
+  --backup "/Users/matt/Library/Mobile Documents/com~apple~CloudDocs/Automations/IronHike-backup.txt" \
   --dry-run
 ```
 
@@ -34,7 +34,7 @@ Expected output before the event:
 ### 3) Install the launchd plist
 
 ```bash
-cp /Users/matthewricci/ironhike-tracker/tools/reconcile/com.matthewdricci.ironhike-reconcile.plist \
+cp /Users/matt/ironhike-tracker/tools/reconcile/com.matthewdricci.ironhike-reconcile.plist \
    ~/Library/LaunchAgents/
 
 launchctl load ~/Library/LaunchAgents/com.matthewdricci.ironhike-reconcile.plist

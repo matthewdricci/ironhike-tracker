@@ -13,7 +13,7 @@ Add it once with:
 Usage:
   reconcile.py --event ironhike \\
                --since 2026-06-04T12:00:00-04:00 \\
-               --backup "/Users/matthewricci/Library/Mobile Documents/com~apple~CloudDocs/Automations/IronHike-backup.txt"
+               --backup "/Users/matt/Library/Mobile Documents/com~apple~CloudDocs/Automations/IronHike-backup.txt"
 """
 
 import argparse
