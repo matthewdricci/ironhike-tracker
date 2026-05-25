@@ -6,10 +6,48 @@
   <meta name="theme-color" content="#0b0d10" />
   <title>IronHike 2026 — Live</title>
   <link rel="stylesheet" href="style.css" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="icon.svg" />
+  <link rel="apple-touch-icon" href="icon.svg" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="IronHike" />
+  <meta name="description" content="Live tracker for Matt Ricci's IronHike Everest attempt — 49 laps in 72 hours, June 4-7, 2026." />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 </head>
 <body>
+  <div id="welcome" class="welcome" hidden>
+    <div class="welcome-card">
+      <div class="welcome-icon">🏔️</div>
+      <h2 id="welcome-title">Watch Matt climb Everest</h2>
+      <p id="welcome-lede">49 laps up Mohawk Mountain. 72 hours. Live updates each summit.</p>
+
+      <div id="welcome-ios" class="welcome-steps" hidden>
+        <p class="welcome-instructions-intro">Install this app to get a notification each time Matt summits:</p>
+        <ol>
+          <li>Tap the <svg class="ios-share-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg> Share button below</li>
+          <li>Scroll down, tap <strong>Add to Home Screen</strong></li>
+          <li>Open <strong>IronHike</strong> from your home screen, then tap 🔔 to turn on race notifications</li>
+        </ol>
+      </div>
+
+      <div id="welcome-android" class="welcome-steps" hidden>
+        <p class="welcome-instructions-intro">Install this app to get a notification each time Matt summits:</p>
+        <button id="welcome-install-btn" class="welcome-cta">📲 Add to Home Screen</button>
+        <p class="welcome-fallback">If that doesn't appear: open browser menu (⋮) → <strong>Add to Home screen</strong> or <strong>Install app</strong>.</p>
+      </div>
+
+      <div id="welcome-desktop" class="welcome-steps" hidden>
+        <p class="welcome-instructions-intro">For live race notifications, open this URL on your phone:</p>
+        <div class="welcome-url">matthewdricci.github.io/ironhike-tracker</div>
+        <p class="welcome-fallback">Or just keep this tab open — the dashboard refreshes itself every 60 seconds.</p>
+      </div>
+
+      <button id="welcome-dismiss" class="welcome-dismiss">I'll just watch from here</button>
+    </div>
+  </div>
+
   <main>
     <header>
       <h1 id="title">IronHike 2026</h1>

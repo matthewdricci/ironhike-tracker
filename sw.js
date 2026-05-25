@@ -13,8 +13,8 @@ self.addEventListener("push", (event) => {
   event.waitUntil(
     self.registration.showNotification(data.title, {
       body: data.body,
-      icon: "/ironhike-tracker/icon-192.png",
-      badge: "/ironhike-tracker/icon-192.png",
+      icon: "/ironhike-tracker/icon.svg",
+      badge: "/ironhike-tracker/icon.svg",
       data: { url },
       tag: "ironhike-lap",
       renotify: true,

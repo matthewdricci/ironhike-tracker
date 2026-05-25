@@ -1,0 +1,19 @@
+{
+  "name": "IronHike 2026 — Matt Ricci",
+  "short_name": "IronHike",
+  "description": "Live tracker for Matt's Everest IronHike attempt — June 4-7, 2026.",
+  "start_url": "/ironhike-tracker/",
+  "scope": "/ironhike-tracker/",
+  "display": "standalone",
+  "background_color": "#0b0d10",
+  "theme_color": "#0b0d10",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

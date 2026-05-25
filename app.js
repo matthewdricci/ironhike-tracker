@@ -424,6 +424,112 @@ function urlBase64ToUint8Array(base64String) {
 }
 
 installPushSubscribe();
+initWelcome();
+
+// ---------- welcome / install overlay ----------
+//
+// Goal: someone who only has the URL (e.g. Matt's mom) opens it and immediately
+// understands they should install the PWA + tap the bell. Shown to first-time
+// mobile visitors. Hidden if: simulating, already installed as PWA, or the user
+// dismissed it before.
+
+const WELCOME_DISMISSED_KEY = "ironhike-welcome-dismissed-v1";
+
+function isInstalledPWA() {
+  if (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) return true;
+  if (navigator.standalone === true) return true;
+  return false;
+}
+
+function detectPlatform() {
+  const ua = navigator.userAgent || "";
+  const isIPad = /iPad/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  if (/iPhone|iPod/.test(ua) || isIPad) return "ios";
+  if (/Android/.test(ua)) return "android";
+  return "desktop";
+}
+
+let _deferredInstallPrompt = null;
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  _deferredInstallPrompt = e;
+});
+
+function initWelcome() {
+  // Skip in sim or time-travel mode — those are dev tools, not user flows.
+  if (SIM_NAME || SIM_NOW) return;
+  if (isInstalledPWA()) {
+    showPushCalloutIfNeeded();
+    return;
+  }
+  if (localStorage.getItem(WELCOME_DISMISSED_KEY)) return;
+
+  const overlay = document.getElementById("welcome");
+  if (!overlay) return;
+
+  const platform = detectPlatform();
+  const iosPanel = document.getElementById("welcome-ios");
+  const androidPanel = document.getElementById("welcome-android");
+  const desktopPanel = document.getElementById("welcome-desktop");
+
+  if (platform === "ios" && iosPanel) iosPanel.hidden = false;
+  else if (platform === "android" && androidPanel) {
+    androidPanel.hidden = false;
+    const btn = document.getElementById("welcome-install-btn");
+    if (btn) {
+      btn.onclick = async () => {
+        if (!_deferredInstallPrompt) {
+          alert("Install prompt isn't available in this browser. Open your browser menu (⋮) and look for 'Add to Home Screen' or 'Install app'.");
+          return;
+        }
+        _deferredInstallPrompt.prompt();
+        const choice = await _deferredInstallPrompt.userChoice;
+        _deferredInstallPrompt = null;
+        if (choice.outcome === "accepted") dismissWelcome();
+      };
+    }
+  } else if (desktopPanel) {
+    desktopPanel.hidden = false;
+  }
+
+  const dismiss = document.getElementById("welcome-dismiss");
+  if (dismiss) dismiss.onclick = dismissWelcome;
+
+  overlay.hidden = false;
+}
+
+function dismissWelcome() {
+  localStorage.setItem(WELCOME_DISMISSED_KEY, String(Date.now()));
+  const overlay = document.getElementById("welcome");
+  if (overlay) overlay.hidden = true;
+}
+
+// When opened as an installed PWA and not yet subscribed to push, surface a
+// friendly callout above the dashboard so users don't miss the bell button.
+async function showPushCalloutIfNeeded() {
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+  try {
+    const reg = await navigator.serviceWorker.getRegistration();
+    if (!reg) return;
+    const sub = await reg.pushManager.getSubscription();
+    if (sub) return; // already subscribed
+    if (Notification.permission === "denied") return; // user said no — don't nag
+
+    // Inject above the dashboard hero.
+    const callout = document.createElement("section");
+    callout.className = "push-callout";
+    callout.innerHTML = `
+      <div class="k">🔔 Turn on race notifications</div>
+      <div class="v">Tap the bell button below to get a push notification each time Matt summits a lap.</div>
+    `;
+    const heroEl = document.querySelector("section.hero");
+    if (heroEl && heroEl.parentNode) {
+      heroEl.parentNode.insertBefore(callout, heroEl.nextSibling);
+    }
+  } catch (e) {
+    console.debug("push callout skipped:", e);
+  }
+}
 
 // ---------- main loop ----------
 
