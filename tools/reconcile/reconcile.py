@@ -6,6 +6,14 @@ For each timestamp in the local backup that lacks a server counterpart within
 TOLERANCE_SECONDS, POST /lap with push=false to replay it. Silent unless
 action was taken — when rows are replayed, sends a single summary push.
 
+Backup file format:
+  - Lines that parse as ISO timestamps are lap candidates.
+  - Lines starting with "UNDO" (case-insensitive) pop the most recent un-popped
+    candidate from the stack. Mirrors how `/lap/delete-last` works on the server.
+    The content after "UNDO" is ignored — ordering does the work, so the Undo
+    Shortcut can write any human-readable suffix.
+  - Blank lines and unparseable lines are skipped silently.
+
 Secret is pulled from macOS Keychain (item name: ironhike-notify-secret).
 Add it once with:
   security add-generic-password -s ironhike-notify-secret -a "$USER" -w '<SECRET>'
@@ -117,16 +125,28 @@ def main():
         sys.stderr.write(f"Could not parse --since: {args.since!r}\n")
         sys.exit(2)
 
-    # Read local backup
+    # Read local backup. UNDO lines pop the most recent un-popped candidate,
+    # mirroring the server's /lap/delete-last semantics — see module docstring.
     try:
         with open(args.backup) as f:
-            local_ts = []
-            for line in f:
+            candidates = []
+            undo_count = 0
+            for raw in f:
+                line = raw.strip()
+                if not line:
+                    continue
+                if line.upper().startswith("UNDO"):
+                    if candidates:
+                        candidates.pop()
+                        undo_count += 1
+                    continue
                 ts = parse_iso(line)
                 if ts:
-                    local_ts.append(ts)
+                    candidates.append(ts)
+            local_ts = candidates
     except FileNotFoundError:
         local_ts = []
+        undo_count = 0
 
     local_ts = [t for t in local_ts if t >= since]
     local_ts.sort()
@@ -139,7 +159,7 @@ def main():
             missing.append(lt)
 
     stamp = datetime.datetime.now().astimezone().isoformat(timespec="seconds")
-    print(f"[{stamp}] event={args.event} since={args.since} local_in_window={len(local_ts)} server={len(server_ts)} missing={len(missing)}")
+    print(f"[{stamp}] event={args.event} since={args.since} local_in_window={len(local_ts)} undos_applied={undo_count} server={len(server_ts)} missing={len(missing)}")
 
     if not missing:
         return

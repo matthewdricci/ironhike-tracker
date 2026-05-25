@@ -74,6 +74,17 @@ Tested against the May 16 Murph rehearsal data:
 - `--since 2026-05-16T09:00:00-04:00` (filters out the pre-workout tests): **22 local, 22 server, 0 missing** ✓
 - `--since 2026-05-16T00:00:00-04:00` (catches them): **25 local, 22 server, 3 missing** detected with `WOULD REPLAY` lines ✓
 
+## Backup file format
+
+The Log Shortcut appends one ISO timestamp per line. The Undo Shortcut appends an `UNDO ...` line — anything after `UNDO ` is ignored (the iOS Shortcuts "Append to Text File" action can't easily produce machine-formatted dates, so we use ordering instead of timestamp-matching).
+
+Reconcile walks the file top-to-bottom:
+- ISO line → push onto candidate stack
+- `UNDO ...` line → pop the most recent candidate (mirrors server's `/lap/delete-last`)
+- blank / unparseable → skip silently
+
+Surviving candidates (after all UNDOs applied) are diffed against the server. The log line includes `undos_applied=N` so you can verify the parse matches what you expect.
+
 ## Gotchas
 
 - **Cloudflare 403 on Python urllib.** The Worker is behind Cloudflare's bot detection. The script sends `User-Agent: ironhike-reconcile/1.0` to slip through. If Cloudflare ever blocks the UA, change `USER_AGENT` in `reconcile.py`.
