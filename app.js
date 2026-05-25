@@ -433,7 +433,6 @@ function urlBase64ToUint8Array(base64String) {
 }
 
 installPushSubscribe();
-initWelcome();
 
 // ---------- welcome / install overlay ----------
 //
@@ -520,6 +519,12 @@ function dismissWelcome() {
   const overlay = document.getElementById("welcome");
   if (overlay) overlay.hidden = true;
 }
+
+// Now that all welcome-related consts and functions are defined, run init.
+// (Was previously called above with installPushSubscribe(), which triggered
+// a temporal-dead-zone ReferenceError on WELCOME_DISMISSED_KEY and silently
+// broke the welcome screen on every load.)
+initWelcome();
 
 
 // ---------- main loop ----------
