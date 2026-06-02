@@ -29,6 +29,7 @@ function getNow() { return SIM_NOW ? new Date(SIM_NOW.getTime()) : new Date(); }
 const CONFIG = {
   start_iso:            "2026-06-04T12:00:00-04:00",
   cutoff_iso:           "2026-06-07T12:00:00-04:00",
+  ideal_iso:            "2026-06-06T12:00:00-04:00",   // ideal finish — drive home Sat in daylight
   total_laps:           49,
   elevation_ft_per_lap: 595,
   athlete_name:         "Matt Ricci",
@@ -128,6 +129,7 @@ function render(laps) {
   const now = getNow();
   const start = new Date(CONFIG.start_iso);
   const cutoff = new Date(CONFIG.cutoff_iso);
+  const ideal = CONFIG.ideal_iso ? new Date(CONFIG.ideal_iso) : null;
   const total = CONFIG.total_laps;
   const ft = CONFIG.elevation_ft_per_lap;
 
@@ -214,7 +216,7 @@ function render(laps) {
   }
 
   renderDupes(laps);
-  renderChart(start, cutoff, total, laps, now, ahead);
+  renderChart(start, cutoff, ideal, total, laps, now, ahead);
 
   document.getElementById("updated").textContent =
     "updated " + now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit" });
@@ -237,7 +239,7 @@ function renderDupes(laps) {
   `;
 }
 
-function renderChart(start, cutoff, total, laps, now, ahead) {
+function renderChart(start, cutoff, ideal, total, laps, now, ahead) {
   const ctx = document.getElementById("chart");
 
   // Burn-down: stairsteps DOWN from total toward 0.
@@ -252,38 +254,44 @@ function renderChart(start, cutoff, total, laps, now, ahead) {
     stepPts.push({ x: now, y: total });
   }
 
-  // Required pace: (start, total) → (cutoff, 0). Hitting zero = done in time.
+  // Deadline pace: (start, total) → (cutoff, 0). Hitting zero = done in time.
   const required = [{ x: start, y: total }, { x: cutoff, y: 0 }];
+  // Ideal pace: (start, total) → (ideal, 0). Finishing here = drive home Sat in daylight.
+  const idealLine = ideal ? [{ x: start, y: total }, { x: ideal, y: 0 }] : null;
 
-  // In burn-down, "ahead" = curve is BELOW the diagonal (less remaining than expected).
-  const remainingColor = ahead === true  ? "#4ade80"
-                       : ahead === false ? "#ef4444"
-                                         : "#ffb648";
-  const remainingFill  = ahead === true  ? "rgba(74, 222, 128, 0.15)"
-                       : ahead === false ? "rgba(239, 68, 68, 0.15)"
-                                         : "rgba(255, 182, 72, 0.15)";
-
+  // Real burn-down is fixed amber; the two dashed target lines own red/green.
+  // Read ahead/behind by where the amber line sits relative to the targets.
   const datasets = [
     {
-      label: "Required",
+      label: "Remaining",
+      data: stepPts,
+      borderColor: "#ffb648",
+      backgroundColor: "rgba(255, 182, 72, 0.15)",
+      borderWidth: 2.5,
+      pointRadius: 0,
+      fill: true,
+      tension: 0,
+    },
+    {
+      label: "Deadline (Sun 12p)",
       data: required,
-      borderColor: "rgba(152, 162, 175, 0.7)",
+      borderColor: "#f87171",
       borderDash: [6, 6],
       borderWidth: 2,
       pointRadius: 0,
       fill: false,
       tension: 0,
     },
-    {
-      label: "Remaining",
-      data: stepPts,
-      borderColor: remainingColor,
-      backgroundColor: remainingFill,
-      borderWidth: 2.5,
+    ...(idealLine ? [{
+      label: "Ideal (Sat 12p)",
+      data: idealLine,
+      borderColor: "#4ade80",
+      borderDash: [2, 4],
+      borderWidth: 2,
       pointRadius: 0,
-      fill: true,
+      fill: false,
       tension: 0,
-    },
+    }] : []),
   ];
 
   if (chart) {
@@ -303,7 +311,11 @@ function renderChart(start, cutoff, total, laps, now, ahead) {
       maintainAspectRatio: false,
       animation: false,
       plugins: {
-        legend: { display: false },
+        legend: {
+          display: true,
+          position: "top",
+          labels: { color: "#f2f4f7", boxWidth: 18, font: { size: 11 }, usePointStyle: false },
+        },
         tooltip: { enabled: false },
       },
       scales: {
