@@ -5,7 +5,6 @@
 // Time-travel: append ?simNow=2026-06-05T18:00:00-04:00 to pretend "now" is that moment.
 
 const REFRESH_MS    = 60_000;
-const REST_MIN      = 45; // minutes between summits before status flips to "Resting"
 const DUP_SEC       = 45; // consecutive timestamps closer than this look like accidental double-taps
 
 // Self-hosted Cloudflare Worker — laps API + Web Push.
@@ -32,6 +31,7 @@ const CONFIG = {
   ideal_iso:            "2026-06-06T12:00:00-04:00",   // ideal finish — drive home Sat in daylight
   total_laps:           49,
   elevation_ft_per_lap: 595,
+  miles_per_lap:        1.25,   // round-trip distance walked per lap (61.25 mi total)
   athlete_name:         "Matt Ricci",
 };
 
@@ -82,7 +82,7 @@ function applyConfigCsv(rows) {
     const k = (r[0] || "").trim();
     const v = (r[1] || "").trim();
     if (!k || k.toLowerCase() === "key") continue;
-    if (k === "total_laps" || k === "elevation_ft_per_lap") CONFIG[k] = Number(v);
+    if (k === "total_laps" || k === "elevation_ft_per_lap" || k === "miles_per_lap") CONFIG[k] = Number(v);
     else CONFIG[k] = v;
   }
 }
@@ -121,6 +121,37 @@ function fmtPerLap(ms) {
 
 const fmtInt = n => n.toLocaleString("en-US", { maximumFractionDigits: 0 });
 
+// ---------- projection ----------
+//
+// Sleep-aware forward simulation of the finish time. Instead of extrapolating
+// observed pace (which over-projects from a fast opening), we step forward from
+// `now`: one lap every 40 min while awake (3 laps / 2h), and a fixed nightly
+// sleep block of 1:00–9:00 (~8h). Any lap that would land inside that window is
+// pushed to 9:00 first. Assumptions: window is the viewer's LOCAL time (matches
+// the rest of the app's toLocaleString usage), and the block is fixed regardless
+// of how few laps remain — so the very tail of a run reads slightly pessimistic.
+
+const PROJ_LAP_MS    = 40 * 60_000;        // 40 min per lap awake
+const PROJ_SLEEP_FROM = 1;                  // sleep starts at 1:00 local
+const PROJ_SLEEP_TO   = 9;                  // ...and ends at 9:00 local (~8h)
+
+function projectFinish(now, remainingLaps) {
+  let t = new Date(now.getTime());
+  let left = remainingLaps;
+  let guard = 0;
+  while (left > 0 && guard++ < 100_000) {
+    const h = t.getHours();
+    if (h >= PROJ_SLEEP_FROM && h < PROJ_SLEEP_TO) {
+      // Inside the nightly sleep window — jump to wake time, then continue.
+      t.setHours(PROJ_SLEEP_TO, 0, 0, 0);
+      continue;
+    }
+    t = new Date(t.getTime() + PROJ_LAP_MS);
+    left--;
+  }
+  return t;
+}
+
 // ---------- render ----------
 
 let chart = null;
@@ -132,6 +163,7 @@ function render(laps) {
   const ideal = CONFIG.ideal_iso ? new Date(CONFIG.ideal_iso) : null;
   const total = CONFIG.total_laps;
   const ft = CONFIG.elevation_ft_per_lap;
+  const mi = CONFIG.miles_per_lap;
 
   const done = laps.length;
   const remainingLaps = Math.max(0, total - done);
@@ -141,7 +173,9 @@ function render(laps) {
   document.getElementById("title").textContent = `IronHike 2026 — ${CONFIG.athlete_name}`;
   document.getElementById("laps-done").textContent  = done;
   document.getElementById("laps-total").textContent = total;
-  document.getElementById("elevation").textContent  = `${fmtInt(done * ft)} ft / ${fmtInt(total * ft)} ft`;
+  document.getElementById("elevation").textContent  = `${fmtInt(done * ft)} / ${fmtInt(total * ft)} ft`;
+  const fmtMi = n => n.toLocaleString("en-US", { maximumFractionDigits: 2 });
+  document.getElementById("distance").textContent   = `${fmtMi(done * mi)} / ${fmtMi(total * mi)} mi`;
   const pct = total ? (done / total) * 100 : 0;
   document.getElementById("percent").textContent = pct.toFixed(1) + "%";
   document.getElementById("progress-bar").style.width = Math.min(100, pct) + "%";
@@ -149,16 +183,15 @@ function render(laps) {
   document.getElementById("elapsed").textContent   = elapsedMs > 0 ? fmtDur(elapsedMs) : "not started";
   document.getElementById("remaining").textContent = cutoffMs > 0 ? fmtDur(cutoffMs) : "CUTOFF PASSED";
 
-  // Budget per lap (used for both the BUFFER projection and NEXT LAP DUE BY deadline).
+  // Budget per lap (used for the NEXT LAP DUE BY deadline).
   const budgetMs = remainingLaps > 0 && cutoffMs > 0 ? cutoffMs / remainingLaps : null;
-  const actualMs = done > 0 && elapsedMs > 0 ? elapsedMs / done : null;
 
-  // BUFFER: projected finish vs cutoff, using cumulative pace.
+  // BUFFER: sleep-aware projected finish vs cutoff (see projectFinish).
   const bufferBox = document.getElementById("buffer-box");
   const bufferEl  = document.getElementById("buffer");
   const bufferNote = document.getElementById("buffer-note");
   bufferBox.classList.remove("good", "bad");
-  if (done === 0 || actualMs == null) {
+  if (done === 0) {
     bufferEl.textContent = "—";
     bufferNote.textContent = "starts updating after lap 1";
   } else if (remainingLaps === 0) {
@@ -170,7 +203,7 @@ function render(laps) {
     bufferBox.classList.add("bad");
     bufferNote.textContent = `${done}/${total} laps completed`;
   } else {
-    const projectedFinish = new Date(now.getTime() + remainingLaps * actualMs);
+    const projectedFinish = projectFinish(now, remainingLaps);
     const buf = cutoff - projectedFinish;
     bufferEl.textContent = (buf >= 0 ? "+" : "−") + fmtDur(Math.abs(buf)) + (buf >= 0 ? " ahead" : " behind");
     bufferBox.classList.add(buf >= 0 ? "good" : "bad");
@@ -195,16 +228,12 @@ function render(laps) {
     dueNote.textContent = `${fmtDur(budgetMs)} from now — your running budget`;
   }
 
-  // Last summit + status
+  // Last completed lap (logged at the bottom after descending, not at the summit)
   if (done > 0) {
     const last = laps[laps.length - 1].t;
-    const since = now - last;
-    document.getElementById("last-summit").textContent = fmtDur(since) + " ago";
-    const isResting = since > REST_MIN * 60_000;
-    document.getElementById("status").textContent = isResting ? `Resting — ${fmtDur(since)}` : "Active";
+    document.getElementById("last-summit").textContent = fmtDur(now - last) + " ago";
   } else {
     document.getElementById("last-summit").textContent = "—";
-    document.getElementById("status").textContent = elapsedMs < 0 ? "pre-event" : "waiting for lap 1";
   }
 
   // For burn-down chart color: are we currently ahead (less remaining than required)?
@@ -248,7 +277,10 @@ function renderChart(start, cutoff, ideal, total, laps, now, ahead) {
     stepPts.push({ x: lap.t, y: total - i });
     stepPts.push({ x: lap.t, y: total - (i + 1) });
   });
-  if (laps.length > 0 && now > laps[laps.length - 1].t) {
+  // While still in progress, extend the line flat to "now" so the gap since the
+  // last lap is visible. Once finished, stop at the final lap — don't drag along
+  // the bottom to "now".
+  if (laps.length > 0 && laps.length < total && now > laps[laps.length - 1].t) {
     stepPts.push({ x: now, y: total - laps.length });
   } else if (laps.length === 0 && now > start) {
     stepPts.push({ x: now, y: total });
