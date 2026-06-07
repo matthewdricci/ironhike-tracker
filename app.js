@@ -152,6 +152,48 @@ function projectFinish(now, remainingLaps) {
   return t;
 }
 
+// A target/guideline line (like a Jira burndown's "guideline") that goes FLAT
+// during the nightly 1–9 AM sleep windows and only descends while awake, so it
+// represents the pace you must hold *while hiking* to reach 0 by `end` rather
+// than a straight diagonal that pretends you climb in your sleep.
+function sleepAwareGuideline(start, end, total) {
+  const inSleep = t => { const h = t.getHours(); return h >= PROJ_SLEEP_FROM && h < PROJ_SLEEP_TO; };
+
+  // Boundaries: every 1:00 and 9:00 strictly between start and end.
+  const bounds = [];
+  const d = new Date(start); d.setHours(0, 0, 0, 0);
+  while (d <= end) {
+    for (const hr of [PROJ_SLEEP_FROM, PROJ_SLEEP_TO]) {
+      const b = new Date(d); b.setHours(hr, 0, 0, 0);
+      if (b > start && b < end) bounds.push(new Date(b));
+    }
+    d.setDate(d.getDate() + 1);
+  }
+  bounds.sort((a, b) => a - b);
+  const segEnds = [...bounds, new Date(end)];
+
+  // Total awake ms across all segments → descent rate (laps per awake ms).
+  let awakeMs = 0, cur = new Date(start);
+  for (const segEnd of segEnds) {
+    const mid = new Date((cur.getTime() + segEnd.getTime()) / 2);
+    if (!inSleep(mid)) awakeMs += segEnd - cur;
+    cur = segEnd;
+  }
+  if (awakeMs <= 0) return [{ x: new Date(start), y: total }, { x: new Date(end), y: 0 }];
+  const rate = total / awakeMs;
+
+  // Walk segments, dropping y only during awake stretches, flat during sleep.
+  const pts = [{ x: new Date(start), y: total }];
+  let y = total; cur = new Date(start);
+  for (const segEnd of segEnds) {
+    const mid = new Date((cur.getTime() + segEnd.getTime()) / 2);
+    if (!inSleep(mid)) y -= rate * (segEnd - cur);
+    pts.push({ x: new Date(segEnd), y: Math.max(0, y) });
+    cur = segEnd;
+  }
+  return pts;
+}
+
 // ---------- render ----------
 
 let chart = null;
@@ -286,10 +328,10 @@ function renderChart(start, cutoff, ideal, total, laps, now, ahead) {
     stepPts.push({ x: now, y: total });
   }
 
-  // Deadline pace: (start, total) → (cutoff, 0). Hitting zero = done in time.
-  const required = [{ x: start, y: total }, { x: cutoff, y: 0 }];
-  // Ideal pace: (start, total) → (ideal, 0). Finishing here = drive home Sat in daylight.
-  const idealLine = ideal ? [{ x: start, y: total }, { x: ideal, y: 0 }] : null;
+  // Deadline pace → 0 by cutoff. Ideal pace → 0 by the ideal finish. Both go flat
+  // during the nightly 1–9 AM sleep windows (Jira-style off-hours guideline).
+  const required = sleepAwareGuideline(start, cutoff, total);
+  const idealLine = ideal ? sleepAwareGuideline(start, ideal, total) : null;
 
   // Real burn-down is fixed amber; the two dashed target lines own red/green.
   // Read ahead/behind by where the amber line sits relative to the targets.
